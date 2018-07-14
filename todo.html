@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>todoList</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            list-style: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: auto;
+            background: #eee;
+            overflow: hidden;
+        }
+
+        #header {
+            width: 100vw;
+            height: 25vh;
+            background: paleturquoise;
+            padding-top: 5vh;
+        }
+
+        #content {
+            width: 60vw;
+            height: 5vh;
+            margin: 0 auto 3vh auto;
+            display: block;
+            /*border:none;*/
+        }
+
+        #btn {
+            width: 10vw;
+            height: 3vh;
+            margin: 0 auto;
+            display: block;
+        }
+
+        #choose {
+            width: 100vw;
+            height: 8vh;
+            background: #ccc;
+            display: flex;
+
+        }
+
+        #choose .active {
+            width: 50vw;
+            height: 100%;
+            background: black;
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+            line-height: 8vh;
+        }
+
+        #choose div {
+            width: 50vw;
+            height: 100%;
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+            line-height: 8vh;
+        }
+
+        #list {
+            width: 100vw;
+            height: 6vh;
+        }
+
+        #list ul {
+            width: 100vw;
+            height: 6vh;
+        }
+
+        #list ul li {
+            width: 100vw;
+            height: 100%;
+            display: list-item;
+            line-height: 6vh;
+            border-bottom: 1px solid #ccc;
+        }
+
+        #list ul li p {
+            width: 60vw;
+            height: 100%;
+            float: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #list ul li time {
+            width: 20vw;
+            height: 100%;
+            float: left;
+            line-height: 3vh;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        #list ul li div {
+            width: 20vw;
+            height: 100%;
+            float: left;
+        }
+
+        #mask {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: rgba(0, 0, 0, 0.57);
+            /*display:none;*/
+        }
+
+        #showarea {
+            width: 80vw;
+            height: 50vh;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            margin-left: -40vw;
+            margin-top: -40vw;
+            background: #eee;
+            border-radius: 2vw;
+        }
+
+        #showarea textarea {
+            display: block;
+            border: none;
+            width: 80vw;
+            height: 60vw;
+            padding: 5vw;
+            font-size: 16px;
+            border-radius: 2vw;
+        }
+
+        #edit {
+            display: block;
+            width: 20vw;
+            height: 10vw;
+            margin: 10vw auto 0;
+        }
+
+        #close {
+            width: 10vw;
+            height: 10vw;
+            line-height: 10vw;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            position: absolute;
+            text-align: center;
+            left: 44%;
+            bottom:13vh;
+            background: rgba(158, 158, 158, 0.49);
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header id="header">
+        <label>
+            <input type="text" id="content" v-model="val">
+        </label>
+        <label>
+            <input type="button" value="提交" id="btn" @click="handleSubmit">
+        </label>
+    </header>
+    <main id="main">
+        <div id="choose">
+            <div :class="{active:state==='plan'}" @click="state='plan'">未完成</div>
+            <div :class="{active:state==='done'}" @click="state='done'">已完成</div>
+        </div>
+        <div id="list">
+            <ul v-if="state==='plan'">
+                <li v-for="item in todo" v-if="item.done===false"><p @click="showContent(item)">{{item.con}}</p>
+                    <time v-html="parseTime(item.time)">12:00</time>
+                    <div @click="changeState(item)">完成</div>
+                </li>
+            </ul>
+            <ul v-else>
+                <li v-for="item in todo" v-if="item.done===true"><p>{{item.con}}</p>
+                    <time v-html="parseTime(item.time)">12:00</time>
+                    <div @click="deleteItem(item)">删除</div>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <div id="mask" v-if="showMask">
+        <div id="showarea">
+            <textarea v-model="con"></textarea>
+            <input type="button" value="修改" id="edit" @click="editContent">
+        </div>
+        <div id="close" @click="showMask=false">X</div>
+    </div>
+</div>
+<script src="vue.js"></script>
+<script>
+    new Vue({
+        el: "#app",
+        data: {
+            val: "",
+            todo: [],
+            state: "plan",
+            showMask: false,
+            con: "",
+            index: 0 //当前查看的内容的编号
+
+        },
+        methods: {
+            handleSubmit: function () {
+                if (this.val === "") {
+                    return
+                }
+                let date = new Date();
+                let time = date.getTime();
+                this.todo.push({con: this.val, time, done: false});
+                this.val = "";
+            },
+            parseTime: function (time) {
+                let date = new Date();
+                date.setTime(time);
+                let year = date.getFullYear();
+                let month = date.getMonth() + 1;
+                let today = date.getDate();
+                let hour = date.getHours();
+                let min = date.getMinutes();
+                return `${hour}:${min < 10 ? "0" + min : min}<br>${year}/${month}/${today}`;
+            },
+            changeState: function (obj) {
+                obj.done = true;
+            },
+            deleteItem: function (obj) {
+                //pop shift splice filter
+                let index = this.todo.indexOf(obj);
+                this.todo.splice(index, 1);
+            },
+            showContent: function (item) {
+                this.showMask = true;
+                this.con = item.con;
+                this.index = this.todo.indexOf(item);
+            },
+            editContent: function () {
+                this.todo[this.index].con = this.con;
+                this.showMask = false;
+            }
+        },
+        watch: {
+            todo: {
+                handler: function () {
+                    localStorage.todo = JSON.stringify(this.todo);
+                },
+                deep: true
+            }
+        },
+        mounted: function () {
+            if (localStorage.todo) {
+                this.todo = JSON.parse(localStorage.todo);
+            }
+        }
+
+    })
+</script>
+</body>
+</html>
